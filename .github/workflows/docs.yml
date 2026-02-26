@@ -1,47 +1,31 @@
 name: Deploy docs
-
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "docs/**"
-      - "mkdocs.yml"
-
+  workflow_dispatch: {}
 permissions:
-  contents: write # This allows pushing to gh-pages
-
+  contents: write
 jobs:
   deploy_docs:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-      - name: Determine docs-only push
-        id: docs-only
-        run: |
-          if [ "${{ github.event_name }}" != "push" ]; then
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          set -euo pipefail
-          before="${{ github.event.before }}"
-          sha="${{ github.sha }}"
-          changed_files=$(git diff --name-only "$before" "$sha" || true)
-          non_docs=$(echo "$changed_files" | grep -vE '^(docs/|mkdocs.yml$)' || true)
-          if [ -n "$non_docs" ]; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Setup uv
-        if: steps.docs-only.outputs.skip != 'true'
-        uses: astral-sh/setup-uv@803947b9bd8e9f986429fa0c5a41c367cd732b41
-        with:
-          enable-cache: true
-      - name: Install dependencies
-        if: steps.docs-only.outputs.skip != 'true'
-        run: make sync
-      - name: Deploy docs
-        if: steps.docs-only.outputs.skip != 'true'
-        run: make deploy-docs
+    - name: Checkout repository
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+    - name: Determine docs-only push
+      id: docs-only
+      run: "if [ \"${{ github.event_name }}\" != \"push\" ]; then\n  echo \"skip=false\"\
+        \ >> \"$GITHUB_OUTPUT\"\n  exit 0\nfi\nset -euo pipefail\nbefore=\"${{ github.event.before\
+        \ }}\"\nsha=\"${{ github.sha }}\"\nchanged_files=$(git diff --name-only \"\
+        $before\" \"$sha\" || true)\nnon_docs=$(echo \"$changed_files\" | grep -vE\
+        \ '^(docs/|mkdocs.yml$)' || true)\nif [ -n \"$non_docs\" ]; then\n  echo \"\
+        skip=true\" >> \"$GITHUB_OUTPUT\"\nelse\n  echo \"skip=false\" >> \"$GITHUB_OUTPUT\"\
+        \nfi\n"
+    - name: Setup uv
+      if: steps.docs-only.outputs.skip != 'true'
+      uses: astral-sh/setup-uv@803947b9bd8e9f986429fa0c5a41c367cd732b41
+      with:
+        enable-cache: true
+    - name: Install dependencies
+      if: steps.docs-only.outputs.skip != 'true'
+      run: make sync
+    - name: Deploy docs
+      if: steps.docs-only.outputs.skip != 'true'
+      run: make deploy-docs
